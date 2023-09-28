@@ -1,8 +1,10 @@
 defmodule Cubit.Measure do
   require Decimal
+  alias Cubit.Dimension
   alias Cubit.Measure
   alias Cubit.Helpers
   alias Cubit.Unit
+  alias Cubit.Measure
 
   defstruct [:value, :unit]
 
@@ -11,6 +13,7 @@ defmodule Cubit.Measure do
           value: Decimal.t(),
           unit: Unit.t()
         }
+  @typep measure :: number | Decimal.t() | t
 
   @doc """
   Create a new measure from a unit and a value.
@@ -57,7 +60,8 @@ defmodule Cubit.Measure do
   An exception is raised is the units do not match.
   """
   @spec add(t, t) :: t
-  def add(%Measure{} = m1, %Measure{} = m2), do: op_or_raise(m1, m2, &Decimal.add/2)
+  def add(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
+    do: fun_or_raise(u1, u2, fn -> new(u1, Decimal.add(v1, v2)) end)
 
   @doc """
   Subtract two measures with the the same unit.
@@ -65,7 +69,8 @@ defmodule Cubit.Measure do
   An exception is raised is the units do not match.
   """
   @spec subtract(t, t) :: t
-  def subtract(%Measure{} = m1, %Measure{} = m2), do: op_or_raise(m1, m2, &Decimal.sub/2)
+  def subtract(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
+    do: fun_or_raise(u1, u2, fn -> new(u1, Decimal.sub(v1, v2)) end)
 
   @doc """
   Raise a measure to an integer power.
@@ -82,40 +87,38 @@ defmodule Cubit.Measure do
   When multiplying two measures, the new unit will be the product of the units
   of the input measures.
   """
-  @spec multiply(t, t) :: t
+  @spec multiply(measure, measure) :: t
   def multiply(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
     do: new(Unit.multiply(u1, u2), Decimal.mult(v1, v2))
 
-  @spec multiply(number | Decimal.t(), t) :: t
-  def multiply(num, %Measure{value: v} = m) when is_number(num) or Decimal.is_decimal(num),
-    do: %{m | value: Decimal.mult(v, Helpers.to_decimal(num))}
+  def multiply(m1, m2), do: multiply(to_measure(m1), to_measure(m2))
 
-  @spec multiply(t, number | Decimal.t()) :: t
-  def multiply(%Measure{value: v} = m, num) when is_number(num) or Decimal.is_decimal(num),
-    do: %{m | value: Decimal.mult(v, Helpers.to_decimal(num))}
-
-  @spec divide(t, t) :: t
+  @spec divide(measure, measure) :: t
   def divide(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
     do: new(Unit.divide(u1, u2), Decimal.div(v1, v2))
 
-  @spec divide(number | Decimal.t(), t) :: t
-  def divide(num, %Measure{} = m) when is_number(num) or Decimal.is_decimal(num),
-    do: multiply(num, pow(m, -1))
-
-  @spec divide(number | Decimal.t(), t) :: t
-  def divide(%Measure{value: v} = m, num) when is_number(num) or Decimal.is_decimal(num),
-    do: %{m | value: Decimal.div(v, Helpers.to_decimal(num))}
+  def divide(m1, m2), do: divide(to_measure(m1), to_measure(m2))
 
   @spec equal?(t, t) :: boolean
   def equal?(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
     do: Unit.equal?(u1, u2) and Decimal.equal?(v1, v2)
 
-  @spec op_or_raise(t, t, (Decimal.t(), Decimal.t() -> Decimal.t())) :: t
-  defp op_or_raise(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}, op) do
+  @spec compare(t, t) :: :lt | :gt | :eq
+  def compare(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
+    do: fun_or_raise(u1, u2, fn -> Decimal.compare(v1, v2) end)
+
+  @spec to_measure(number | Decimal.t() | t) :: t
+  defp to_measure(%Measure{} = m), do: m
+
+  defp to_measure(m) when is_number(m) or Decimal.is_decimal(m),
+    do: Dimension.new([]) |> Unit.new(1) |> new(m)
+
+  @spec fun_or_raise(Unit.t(), Unit.t(), (-> any)) :: any
+  defp fun_or_raise(u1, u2, fun) do
     if Unit.equal?(u1, u2) do
-      new(u1, op.(v1, v2))
+      fun.()
     else
-      raise ArgumentError, message: "Units must be equal for this operation."
+      raise ArgumentError, message: "when comparing measures, the units must be equal"
     end
   end
 end
