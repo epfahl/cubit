@@ -59,5 +59,5 @@ defmodule Cubit.Dimension do
 
   @spec to_dims(t) :: [{t, integer}]
   defp to_dims(%Dimension{dims: %Base{}} = d), do: [{d, 1}]
-  defp to_dims(%Dimension{dims: [_ | _] = dims}), do: dims
+  defp to_dims(%Dimension{dims: dims}) when is_list(dims), do: dims
 end
