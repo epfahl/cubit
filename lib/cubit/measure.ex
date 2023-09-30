@@ -29,10 +29,10 @@ defmodule Cubit.Measure do
     }
 
   @doc """
-  Return the value of a measurement as a `Decimal`.
+  Return the value of a measurement as a float.
   """
   @spec to_float(t) :: float()
-  def to_float(%Measure{value: v}), do: v
+  def to_float(%Measure{value: v}), do: Decimal.to_float(v)
 
   @doc """
   Convert a measure to a new unit with the same dimension.
