@@ -1,4 +1,7 @@
 defmodule Cubit.Measure do
+  @moduledoc """
+  """
+
   require Decimal
   alias Cubit.Dimension
   alias Cubit.Measure
@@ -25,17 +28,16 @@ defmodule Cubit.Measure do
       value: Helpers.to_decimal(value)
     }
 
-  def new(%Measure{value: v} = m, value),
-    do: %{m | value: Decimal.mult(v, Helpers.to_decimal(value))}
-
   @doc """
-  Given a measure, return its value as a float.
+  Return the value of a measurement as a `Decimal`.
   """
   @spec to_float(t) :: float()
-  def to_float(%Measure{value: v}), do: Decimal.to_float(v)
+  def to_float(%Measure{value: v}), do: v
 
   @doc """
-  Convert a measure to a new unit.
+  Convert a measure to a new unit with the same dimension.
+
+  An exception is raised is the units do not match.
   """
   @spec convert(t, Unit.t()) :: t
   def convert(%Measure{unit: u_from, value: v}, u_to),
@@ -49,13 +51,13 @@ defmodule Cubit.Measure do
 
   @doc """
   Cast a unit to a measure by promoting the scale to a value and setting
-  the new scale to 1.
+  the new unit scale to 1.
   """
   @spec from_unit(Unit.t()) :: t()
   def from_unit(%Unit{dim: d, scale: s}), do: new(Unit.new(d, 1), s)
 
   @doc """
-  Add two measures with the the same unit.
+  Add two measures with the the same units.
 
   An exception is raised is the units do not match.
   """
@@ -64,7 +66,7 @@ defmodule Cubit.Measure do
     do: fun_or_raise(u1, u2, fn -> new(u1, Decimal.add(v1, v2)) end)
 
   @doc """
-  Subtract two measures with the the same unit.
+  Subtract two measures with the the same units.
 
   An exception is raised is the units do not match.
   """
@@ -76,16 +78,16 @@ defmodule Cubit.Measure do
   Raise a measure to an integer power.
   """
   @spec pow(t, integer) :: t
-  def pow(%Measure{unit: u}, 0), do: new(Unit.pow(u, 0), 1)
+  def pow(%Measure{unit: u}, 0), do: u |> Unit.pow(0) |> new(1)
 
   def pow(%Measure{unit: u, value: v}, exp) when is_integer(exp),
-    do: new(Unit.pow(u, exp), Helpers.decimal_pow(v, exp))
+    do: u |> Unit.pow(exp) |> new(Helpers.decimal_pow(v, exp))
 
   @doc """
-  Multiply a measure by another measure or a number.
+  Multiply two measures, a measure and a number, or two numbers, and return the
+  resulting measure.
 
-  When multiplying two measures, the new unit will be the product of the units
-  of the input measures.
+  A number is treated as a measure with a dimensionless unit.
   """
   @spec multiply(measure, measure) :: t
   def multiply(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
@@ -93,16 +95,30 @@ defmodule Cubit.Measure do
 
   def multiply(m1, m2), do: multiply(to_measure(m1), to_measure(m2))
 
+  @doc """
+  Divide two measures, a measure by a number, a number by a measure, or two
+  numbers, and return the resulting measure.
+
+  A number is treated as a measure with a dimensionless unit.
+  """
   @spec divide(measure, measure) :: t
   def divide(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
     do: new(Unit.divide(u1, u2), Decimal.div(v1, v2))
 
   def divide(m1, m2), do: divide(to_measure(m1), to_measure(m2))
 
+  @doc """
+  Return `true` if two measures have equal units and values, and `false`
+  otherwise.
+  """
   @spec equal?(t, t) :: boolean
   def equal?(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
     do: Unit.equal?(u1, u2) and Decimal.equal?(v1, v2)
 
+  @doc """
+  Compare the values of two measures with the same dimension and return `:lt`
+  (less than), `:gt` (greater than), or `:eq` (equal).
+  """
   @spec compare(t, t) :: :lt | :gt | :eq
   def compare(%Measure{unit: u1, value: v1}, %Measure{unit: u2, value: v2}),
     do: fun_or_raise(u1, u2, fn -> Decimal.compare(v1, v2) end)

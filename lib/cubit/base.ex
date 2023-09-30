@@ -7,13 +7,16 @@ defmodule Cubit.Base do
   """
   defstruct [:name]
 
-  @type base_name :: atom
+  @type base_name :: any
   @type t :: %__MODULE__{
           name: base_name
         }
 
+  @doc """
+  Create a new base struct.
+  """
   @spec new(base_name) :: t
-  def new(name) when is_atom(name) do
+  def new(name) do
     %__MODULE__{name: name}
   end
 end
