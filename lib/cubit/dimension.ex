@@ -1,81 +1,154 @@
 defmodule Cubit.Dimension do
   @moduledoc """
+  Create and operate on dimensions.
   """
 
+  import Ratio, only: [is_rational: 1]
   alias Cubit.Dimension
-  alias Cubit.Base
+  alias Cubit.Dimension.Base
 
-  defstruct [:dim]
+  defstruct [:comps]
 
-  @type t :: %Dimension{
-          dim: Base.t() | [{t, integer}]
-        }
+  @type component :: {Base.t(), Ratio.t()}
+  @type t :: %Dimension{comps: Base.t() | [component()]}
 
-  @doc """
-  Create either a named base dimension or a composite diemsnion.
-  """
-  @spec new(Base.base_name() | t | [{t, integer}]) :: t
-  def new(dim) when is_atom(dim), do: %Dimension{dim: Base.new(dim)}
-
-  def new(dim) when is_list(dim) do
-    base_dim =
-      dim
-      |> to_base(1)
-      |> consolidate_dim()
-
-    %Dimension{dim: base_dim}
-  end
-
-  @spec to_base(t | [{t, integer}], integer) :: [{t, integer}]
-  defp to_base(dims, exp) when is_list(dims),
-    do: Enum.flat_map(dims, fn {d, e} -> to_base(d, exp * e) end)
-
-  defp to_base(%Dimension{dim: %Base{}} = d, exp), do: [{d, exp}]
-  defp to_base(%Dimension{dim: dim}, exp), do: to_base(dim, exp)
-
-  @spec consolidate_dim([{t, integer}]) :: [{t, integer}]
-  defp consolidate_dim(dim) do
-    dim
-    |> Enum.reduce(%{}, fn {d, e}, acc -> Map.update(acc, d, e, &(&1 + e)) end)
-    |> Map.to_list()
-    |> Enum.reject(fn {_d, e} -> e == 0 end)
-  end
+  @type base_name :: binary | atom
 
   @doc """
-  Raise a dimension to an integer power.
-  """
-  @spec pow(t, integer) :: t
-  def pow(%Dimension{}, 0), do: new([])
-  def pow(%Dimension{} = d, exp) when is_integer(exp), do: to_dim(d) |> apply_exp(exp) |> new()
+  Create either a named base dimension or a composite dimension.
 
-  @spec apply_exp([{t, integer}], integer) :: [{t, integer}]
-  defp apply_exp(dim, exp), do: Enum.map(dim, fn {d, e} -> {d, e * exp} end)
+  ## Examples
+
+      iex> l = new(:length)
+      #Dimension<length^1>
+      iex> t = new(:time)
+      #Dimension<time^1>
+      iex> new([{l, 1}, {t, -1}])
+      #Dimension<length^1 time^-1>
+  """
+  @spec new(base_name() | [{t, integer | Ratio.t()}]) :: t
+  def new(name_or_comps) when is_atom(name_or_comps) or is_binary(name_or_comps) do
+    %Dimension{comps: Base.new(name_or_comps)}
+  end
+
+  def new([]), do: %Dimension{comps: []}
+  def new(comps) when is_list(comps), do: %Dimension{comps: to_components(comps, 1)}
+
+  @doc """
+  Raise a dimension to an integer or rational power.
+
+  ## Examples
+
+      iex> l = new(:length)
+      #Dimension<length^1>
+      iex> vol = pow(l, 3)
+      #Dimension<length^3>
+      iex> pow(vol, Ratio.new(1, 3))
+      #Dimension<length^1>
+  """
+  @spec pow(t, integer | Ratio.t()) :: t
+  def pow(%Dimension{} = dim, exp) when is_integer(exp) or is_rational(exp) do
+    if exp == 0 or exp == Ratio.new(0) do
+      new([])
+    else
+      new([{dim, exp}])
+    end
+  end
 
   @doc """
   Mutiply two dimenions.
+
+  ## Examples
+
+      iex> l = new(:length)
+      #Dimension<length^1>
+      iex> multiply(l, l)
+      #Dimension<length^2>
   """
   @spec multiply(t, t) :: t
-  def multiply(%Dimension{} = d1, %Dimension{} = d2),
-    do: Enum.concat(to_dim(d1), to_dim(d2)) |> new()
+  def multiply(%Dimension{} = dim1, %Dimension{} = dim2),
+    do: new([{dim1, 1}, {dim2, 1}])
 
   @doc """
   Divide two measures.
+
+  ## Examples
+
+      iex> l = new(:length)
+      #Dimension<length^1>
+      iex> t = new(:time)
+      #Dimension<time^1>
+      iex> divide(l, t)
+      #Dimension<length^1 time^-1>
   """
   @spec divide(t, t) :: t
-  def divide(%Dimension{} = d1, %Dimension{} = d2), do: d2 |> pow(-1) |> multiply(d1)
+  def divide(%Dimension{} = dim1, %Dimension{} = dim2), do: dim2 |> pow(-1) |> multiply(dim1)
 
   @doc """
-  Return `true` if two dimensions have the same set of base dimensions, and
-  `false` otherwise.
+  Test if two dimensions are equivalent.
+
+  Returns `true` if the two dimensions have the same base components, and
+  `false` otherwise. A base dimension is equlivalent to a dimension whose only
+  component is that base dimension with an expoenent of 1.
+
+  ## Examples
+
+      iex> l = new(:length)
+      #Dimension<length^1>
+      iex> t = new(:time)
+      #Dimension<time^1>
+      iex> equal?(l, t)
+      false
+      iex> equal?(l, new([{l, 1}]))
+      true
   """
   @spec equal?(t, t) :: boolean
-  def equal?(%Dimension{} = d1, %Dimension{} = d2), do: MapSet.equal?(to_set(d1), to_set(d2))
+  def equal?(%Dimension{} = dim1, %Dimension{} = dim2) do
+    [set1, set2] =
+      Enum.map([dim1, dim2], fn dim ->
+        dim |> to_components(1) |> MapSet.new()
+      end)
 
-  @spec to_set(t) :: MapSet.t({t, integer()})
-  defp to_set(%Dimension{dim: %Base{}} = d), do: d |> to_dim() |> MapSet.new()
-  defp to_set(%Dimension{dim: dim}), do: new(dim) |> to_dim() |> MapSet.new()
+    MapSet.equal?(set1, set2)
+  end
 
-  @spec to_dim(t) :: [{t, integer}]
-  defp to_dim(%Dimension{dim: %Base{}} = d), do: [{d, 1}]
-  defp to_dim(%Dimension{dim: dim}) when is_list(dim), do: dim
+  # Reduce a dimension or dimension-exponent pairs to a list of base
+  # components with the given exponent. Each base dimension will appear only
+  # once, and base dimensions with exponent 0 are removed.
+  @spec to_components(t | [{t, integer | Ratio.t()}], integer | Ratio.t()) :: [component()]
+  defp to_components(%Dimension{comps: %Base{}} = dim, exp), do: [{dim, Ratio.new(exp)}]
+  defp to_components(%Dimension{comps: comps}, exp), do: to_components(comps, exp)
+
+  defp to_components(dims, exp) when is_list(dims) do
+    exp = Ratio.new(exp)
+
+    dims
+    |> Enum.flat_map(fn {d, e} -> to_components(d, Ratio.mult(exp, e)) end)
+    |> Enum.reduce(%{}, fn {d, e}, acc -> Map.update(acc, d, e, &Ratio.add(&1, e)) end)
+    |> Enum.reject(fn {_d, e} -> Ratio.equal?(e, 0) end)
+  end
+end
+
+defimpl Inspect, for: Cubit.Dimension do
+  alias Cubit.Dimension.Base
+  alias Cubit.Dimension
+
+  def inspect(%Dimension{comps: comps}, _opts) do
+    comps_str =
+      case comps do
+        %Base{name: name} ->
+          "#{to_string(name)}^1"
+
+        dims when is_list(dims) ->
+          dims
+          |> Enum.map_join(" ", fn {%Dimension{comps: %Base{name: name}}, e} ->
+            "#{to_string(name)}^#{parse_ratio(e)}"
+          end)
+      end
+
+    "#Dimension<#{comps_str}>"
+  end
+
+  defp parse_ratio(%Ratio{numerator: n, denominator: 1}), do: "#{n}"
+  defp parse_ratio(%Ratio{numerator: n, denominator: d}), do: "#{n}/#{d}"
 end

@@ -1,8 +1,4 @@
 defmodule CubitTest do
   use ExUnit.Case
-  doctest Cubit
-
-  test "greets the world" do
-    assert Cubit.hello() == :world
-  end
+  doctest Cubit, import: true
 end

@@ -1,22 +1,17 @@
-defmodule Cubit.Base do
+defmodule Cubit.Dimension.Base do
   @moduledoc """
   A `Base` struct represents a named base dimension.
 
-  The only purpose of this struct is to clearly indicate base dimensions and to
+  The purpose of this struct is to indicate an irreducible base dimension and to
   facilitate pattern matching.
   """
   defstruct [:name]
 
-  @type base_name :: any
-  @type t :: %__MODULE__{
-          name: base_name
-        }
+  @type t :: %__MODULE__{name: any}
 
   @doc """
-  Create a new base struct.
+  Create a new base struct with the given `name`.
   """
-  @spec new(base_name) :: t
-  def new(name) do
-    %__MODULE__{name: name}
-  end
+  @spec new(any) :: t
+  def new(name), do: %__MODULE__{name: name}
 end
