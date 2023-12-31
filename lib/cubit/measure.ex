@@ -67,10 +67,10 @@ defmodule Cubit.Measure do
   """
   @spec multiply(t, t | number | Decimal.t()) :: t
   def multiply(
-        %Measure{unit: unit1, quantity: quantity1},
-        %Measure{unit: unit2, quantity: quantity2}
+        %Measure{unit: u1, quantity: q1},
+        %Measure{unit: u2, quantity: q2}
       ) do
-    new(Unit.multiply(unit1, unit2), Decimal.mult(quantity1, quantity2))
+    new(Unit.multiply(u1, u2), Decimal.mult(q1, q2))
   end
 
   def multiply(%Measure{} = measure, num) when is_numeric(num) do
@@ -80,14 +80,14 @@ defmodule Cubit.Measure do
   @doc """
   Divide two measures or a measure and a number.
 
-  A number is treated as a measure with a dimensionless measure.
+  A number is treated as a dimensionless measure.
   """
   @spec divide(t, t | number | Decimal.t()) :: t
   def divide(
-        %Measure{unit: unit1, quantity: quantity1},
-        %Measure{unit: unit2, quantity: quantity2}
+        %Measure{unit: u1, quantity: q1},
+        %Measure{unit: u2, quantity: q2}
       ) do
-    new(Unit.divide(unit1, unit2), Decimal.div(quantity1, quantity2))
+    new(Unit.divide(u1, u2), Decimal.div(q1, q2))
   end
 
   def divide(%Measure{} = measure, num) when is_numeric(num) do
@@ -95,30 +95,44 @@ defmodule Cubit.Measure do
   end
 
   @doc """
-  Add two measures with the the same units.
+  Add two measures with the the same dimensions.
 
-  This returns `{:ok, measure}` if the units match, and `:error` if the units
-  are different.
+  This returns `{:ok, measure}` if the dimensions match, and `:error` if the
+  dimensions are different.
   """
   @spec add(t, t) :: {:ok, t} | :error
-  def add(%Measure{unit: u1, quantity: v1}, %Measure{unit: u2, quantity: v2}) do
-    if Unit.equal?(u1, u2) do
-      {:ok, new(u1, Decimal.add(v1, v2))}
+  def add(%Measure{unit: u1} = m1, %Measure{unit: u2} = m2) do
+    if Dimension.equal?(u1.dim, u2.dim) do
+      m1_norm = normalize(m1)
+      m2_norm = normalize(m2)
+
+      {:ok,
+       new(
+         m1_norm.unit,
+         Decimal.add(m1_norm.quantity, m2_norm.quantity)
+       )}
     else
       :error
     end
   end
 
   @doc """
-  Subtract two measures with the the same units.
+  Subtract two measures with the the same dimensions.
 
-  This returns `{:ok, measure}` if the units match, and `:error` if the units
+  This returns `{:ok, measure}` if the dimensions match, and `:error` if the dimensions
   are different.
   """
   @spec subtract(t, t) :: {:ok, t} | :error
-  def subtract(%Measure{unit: u1, quantity: v1}, %Measure{unit: u2, quantity: v2}) do
-    if Unit.equal?(u1, u2) do
-      {:ok, new(u1, Decimal.sub(v1, v2))}
+  def subtract(%Measure{unit: u1} = m1, %Measure{unit: u2} = m2) do
+    if Dimension.equal?(u1.dim, u2.dim) do
+      m1_norm = normalize(m1)
+      m2_norm = normalize(m2)
+
+      {:ok,
+       new(
+         m1_norm.unit,
+         Decimal.sub(m1_norm.quantity, m2_norm.quantity)
+       )}
     else
       :error
     end
@@ -175,6 +189,12 @@ defmodule Cubit.Measure do
   """
   @spec from_unit(Unit.t()) :: t()
   def from_unit(%Unit{dim: d, scale: s}), do: new(Unit.new(d, 1), s)
+
+  @doc """
+  Normalize a measure by converting it to base unit with a scale of 1.
+  """
+  @spec normalize(t) :: t
+  def normalize(%Measure{unit: u, quantity: q}), do: u |> from_unit() |> multiply(q)
 
   @spec numeric_to_measure(number | Decimal.t()) :: t
   defp numeric_to_measure(num) when is_numeric(num) do

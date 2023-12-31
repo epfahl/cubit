@@ -71,8 +71,8 @@ defmodule Cubit.Unit do
       #Unit<1E+3 #Dimension<length^1>>
   """
   @spec multiply(t, t | numeric) :: t
-  def multiply(%Unit{dim: dim1, scale: scale1}, %Unit{dim: dim2, scale: scale2}) do
-    new(Dimension.multiply(dim1, dim2), Decimal.mult(scale1, scale2))
+  def multiply(%Unit{dim: d1, scale: s1}, %Unit{dim: d2, scale: s2}) do
+    new(Dimension.multiply(d1, d2), Decimal.mult(s1, s2))
   end
 
   def multiply(%Unit{} = unit, num), do: multiply(unit, numeric_to_unit(num))
@@ -93,8 +93,8 @@ defmodule Cubit.Unit do
       #Unit<1 #Dimension<length^1 time^-1>>
   """
   @spec divide(t, t | numeric) :: t
-  def divide(%Unit{dim: dim1, scale: scale1}, %Unit{dim: dim2, scale: scale2}) do
-    new(Dimension.divide(dim1, dim2), Decimal.div(scale1, scale2))
+  def divide(%Unit{dim: d1, scale: s1}, %Unit{dim: d2, scale: s2}) do
+    new(Dimension.divide(d1, d2), Decimal.div(s1, s2))
   end
 
   def divide(%Unit{} = unit, num) when is_numeric(num), do: divide(unit, numeric_to_unit(num))
@@ -116,8 +116,8 @@ defmodule Cubit.Unit do
       true
   """
   @spec equal?(t, t) :: boolean()
-  def equal?(%Unit{dim: dim1, scale: scale1}, %Unit{dim: dim2, scale: scale2}) do
-    Dimension.equal?(dim1, dim2) and Decimal.equal?(scale1, scale2)
+  def equal?(%Unit{dim: d1, scale: s1}, %Unit{dim: d2, scale: s2}) do
+    Dimension.equal?(d1, d2) and Decimal.equal?(s1, s2)
   end
 
   @doc """
@@ -141,9 +141,9 @@ defmodule Cubit.Unit do
       {:ok, :gt}
   """
   @spec compare(t, t) :: {:ok, :lt | :gt | :eq} | :error
-  def compare(%Unit{dim: dim1, scale: scale1}, %Unit{dim: dim2, scale: scale2}) do
-    if Dimension.equal?(dim1, dim2) do
-      {:ok, Decimal.compare(scale1, scale2)}
+  def compare(%Unit{dim: d1, scale: s1}, %Unit{dim: d2, scale: s2}) do
+    if Dimension.equal?(d1, d2) do
+      {:ok, Decimal.compare(s1, s2)}
     else
       :error
     end
