@@ -109,9 +109,9 @@ defmodule Cubit do
       iex> equal?(vol |> pow(ratio(1, 3)), measure(meter, 2))
       true
   """
-  @spec equal?(Dimension.t(), Dimension.t()) :: Dimension.t()
-  @spec equal?(Unit.t(), Unit.t()) :: Unit.t()
-  @spec equal?(Measure.t(), Measure.t()) :: Measure.t()
+  @spec equal?(Dimension.t(), Dimension.t()) :: boolean
+  @spec equal?(Unit.t(), Unit.t()) :: boolean
+  @spec equal?(Measure.t(), Measure.t()) :: boolean
   def equal?(%Dimension{} = x1, %Dimension{} = x2), do: Dimension.equal?(x1, x2)
   def equal?(%Unit{} = x1, %Unit{} = x2), do: Unit.equal?(x1, x2)
   def equal?(%Measure{} = x1, %Measure{} = x2), do: Measure.equal?(x1, x2)
