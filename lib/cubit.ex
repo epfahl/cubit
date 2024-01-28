@@ -1,6 +1,14 @@
 defmodule Cubit do
+  @readme "README.md"
+  @external_resource @readme
+  @moduledoc_readme @readme
+                    |> File.read!()
+                    |> String.split("<!-- END HEADER -->")
+                    |> Enum.fetch!(1)
+                    |> String.trim()
+
   @moduledoc """
-  Primary public interface for `Cubit`.
+  #{@moduledoc_readme}
   """
 
   alias Cubit.Dimension

@@ -1,5 +1,13 @@
-# Cubit
+[![Hex.pm Version](https://img.shields.io/hexpm/v/cubit.svg)](https://hex.pm/packages/cubit)
 
-**WIP**
+<!-- END HEADER -->
 
-An Elixir library for working with dimensions, units, and measured quantities.
+`Cubit` is an Elixir library for constructing and computing with dimensions, units, and measures.
+
+## Background
+
+## Create a dimension
+
+## Create a unit
+
+## Create a measure

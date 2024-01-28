@@ -6,7 +6,7 @@ defmodule Cubit.MixProject do
   def project do
     [
       app: :cubit,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.15",
       description: description(),
       package: package(),
