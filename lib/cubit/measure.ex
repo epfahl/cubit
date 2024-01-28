@@ -20,6 +20,7 @@ defmodule Cubit.Measure do
           quantity: Decimal.t(),
           unit: Unit.t()
         }
+  @type numeric :: number | Decimal.t()
 
   @doc """
   Create a new measure from a unit and a quantity.
@@ -31,7 +32,7 @@ defmodule Cubit.Measure do
       iex> Dimension.new(:length) |> Unit.new(1) |> Measure.new(3.14)
       #Meausure<3.14 #Unit<1 #Dimension<length^1>>>
   """
-  @spec new(Unit.t(), number | Decimal.t()) :: t
+  @spec new(Unit.t(), numeric) :: t
   def new(%Unit{} = unit, quantity) when is_numeric(quantity) do
     {:ok, quantity} = Decimal.cast(quantity)
     %Cubit.Measure{unit: unit, quantity: Decimal.normalize(quantity)}
@@ -63,9 +64,9 @@ defmodule Cubit.Measure do
   @doc """
   Multiply two measures or a measure and a number.
 
-  A number is treated as a measure with a dimensionless measure.
+  The first argument must be a measure. A number is treated as a measure with a dimensionless measure.
   """
-  @spec multiply(t, t | number | Decimal.t()) :: t
+  @spec multiply(t, t | numeric) :: t
   def multiply(
         %Measure{unit: u1, quantity: q1},
         %Measure{unit: u2, quantity: q2}
@@ -80,9 +81,9 @@ defmodule Cubit.Measure do
   @doc """
   Divide two measures or a measure and a number.
 
-  A number is treated as a dimensionless measure.
+  The first argument must be a measure. A number is treated as a dimensionless measure.
   """
-  @spec divide(t, t | number | Decimal.t()) :: t
+  @spec divide(t, t | numeric) :: t
   def divide(
         %Measure{unit: u1, quantity: q1},
         %Measure{unit: u2, quantity: q2}
@@ -196,7 +197,7 @@ defmodule Cubit.Measure do
   @spec normalize(t) :: t
   def normalize(%Measure{unit: u, quantity: q}), do: u |> from_unit() |> multiply(q)
 
-  @spec numeric_to_measure(number | Decimal.t()) :: t
+  @spec numeric_to_measure(numeric) :: t
   defp numeric_to_measure(num) when is_numeric(num) do
     Dimension.new([]) |> Unit.new(1) |> new(num)
   end

@@ -11,11 +11,11 @@ defmodule Cubit do
   #{@moduledoc_readme}
   """
 
+  alias Cubit.Base
   alias Cubit.Dimension
   alias Cubit.Measure
   alias Cubit.Unit
 
-  @type base_name :: atom | binary
   @type numeric :: number | Decimal.t()
   @type exp :: integer | Ratio.t()
   @type dum :: Dimension.t() | Unit.t() | Measure.t()
@@ -28,8 +28,8 @@ defmodule Cubit do
       iex> dimension(:length)
       #Dimension<length^1>
   """
-  @spec dimension(base_name) :: Dimension.t()
-  def dimension(name) when is_atom(name) or is_binary(name), do: Dimension.new(name)
+  @spec dimension(Base.name()) :: Dimension.t()
+  def dimension(name), do: Dimension.new(name)
 
   @doc """
   Create a unit from a dimension and a positive scale factor.
@@ -39,8 +39,8 @@ defmodule Cubit do
       iex>  dimension(:length) |> unit(1)
       #Unit<1 #Dimension<length^1>>
   """
-  @spec unit(Dimension.t(), numeric) :: Unit.t()
-  def unit(dim, scale), do: Unit.new(dim, scale)
+  @spec unit(Dimension.t(), numeric, keyword) :: Unit.t()
+  def unit(dim, scale, opts \\ []), do: Unit.new(dim, scale, opts)
 
   @doc """
   Create a new measure from a unit and a quantity.
@@ -75,6 +75,10 @@ defmodule Cubit do
   @doc """
   Multiply two dimensions, units, or measures.
 
+  The first argument must be a dimension, unit, or measure. When the first
+  argument is a dimension, the second argument must be a dimension. When the
+  first argument is a unit or measure, the second argument can be a number.
+
   ## Examples
 
       iex> meter = dimension(:length) |> unit(1)
@@ -83,14 +87,19 @@ defmodule Cubit do
       #Meausure<3.14 #Unit<1E+3 #Dimension<length^1>>>
   """
   @spec multiply(Dimension.t(), Dimension.t()) :: Dimension.t()
-  @spec multiply(Unit.t(), Unit.t()) :: Unit.t()
-  @spec multiply(Measure.t(), Measure.t()) :: Measure.t()
+  @spec multiply(Unit.t(), Unit.t() | numeric) :: Unit.t()
+  @spec multiply(Measure.t(), Measure.t() | numeric) :: Measure.t()
   def multiply(%Dimension{} = x1, %Dimension{} = x2), do: Dimension.multiply(x1, x2)
   def multiply(%Unit{} = x1, x2), do: Unit.multiply(x1, x2)
   def multiply(%Measure{} = x1, x2), do: Measure.multiply(x1, x2)
 
   @doc """
   Divide two dimensions, units, or measures.
+
+  The first argument must be a dimension, unit, or measure. When the first
+  argument is a dimension, the second argument must be a dimension. When the
+  first argument is a unit or measure, the second argument can be a number.
+
 
   ## Examples
 
@@ -100,9 +109,9 @@ defmodule Cubit do
       #Unit<1 #Dimension<length^1 time^-1>>
   """
   @spec divide(Dimension.t(), Dimension.t()) :: Dimension.t()
-  @spec divide(Unit.t(), Unit.t()) :: Unit.t()
-  @spec divide(Measure.t(), Measure.t()) :: Measure.t()
-  def divide(%Dimension{} = x1, x2), do: Dimension.divide(x1, x2)
+  @spec divide(Unit.t(), Unit.t() | numeric) :: Unit.t()
+  @spec divide(Measure.t(), Measure.t() | numeric) :: Measure.t()
+  def divide(%Dimension{} = x1, %Dimension{} = x2), do: Dimension.divide(x1, x2)
   def divide(%Unit{} = x1, x2), do: Unit.divide(x1, x2)
   def divide(%Measure{} = x1, x2), do: Measure.divide(x1, x2)
 

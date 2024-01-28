@@ -7,12 +7,10 @@ defmodule Cubit.Dimension do
   alias Cubit.Dimension
   alias Cubit.Dimension.Base
 
-  defstruct [:comps]
+  defstruct [:components]
 
   @type component :: {Base.t(), Ratio.t()}
-  @type t :: %Dimension{comps: Base.t() | [component()]}
-
-  @type base_name :: binary | atom
+  @type t :: %Dimension{components: Base.t() | [component()]}
 
   @doc """
   Create either a named base dimension or a composite dimension.
@@ -26,13 +24,13 @@ defmodule Cubit.Dimension do
       iex> new([{l, 1}, {t, -1}])
       #Dimension<length^1 time^-1>
   """
-  @spec new(base_name() | [{t, integer | Ratio.t()}]) :: t
+  @spec new(Base.name() | [{t, integer | Ratio.t()}]) :: t
   def new(name_or_comps) when is_atom(name_or_comps) or is_binary(name_or_comps) do
-    %Dimension{comps: Base.new(name_or_comps)}
+    %Dimension{components: Base.new(name_or_comps)}
   end
 
-  def new([]), do: %Dimension{comps: []}
-  def new(comps) when is_list(comps), do: %Dimension{comps: to_components(comps, 1)}
+  def new([_ | _] = name_or_comps), do: %Dimension{components: to_components(name_or_comps, 1)}
+  def new([]), do: %Dimension{components: []}
 
   @doc """
   Raise a dimension to an integer or rational power.
@@ -116,8 +114,8 @@ defmodule Cubit.Dimension do
   # components with the given exponent. Each base dimension will appear only
   # once, and base dimensions with exponent 0 are removed.
   @spec to_components(t | [{t, integer | Ratio.t()}], integer | Ratio.t()) :: [component()]
-  defp to_components(%Dimension{comps: %Base{}} = dim, exp), do: [{dim, Ratio.new(exp)}]
-  defp to_components(%Dimension{comps: comps}, exp), do: to_components(comps, exp)
+  defp to_components(%Dimension{components: %Base{}} = dim, exp), do: [{dim, Ratio.new(exp)}]
+  defp to_components(%Dimension{components: comps}, exp), do: to_components(comps, exp)
 
   defp to_components(dims, exp) when is_list(dims) do
     exp = Ratio.new(exp)
@@ -133,20 +131,20 @@ defimpl Inspect, for: Cubit.Dimension do
   alias Cubit.Dimension.Base
   alias Cubit.Dimension
 
-  def inspect(%Dimension{comps: comps}, _opts) do
-    comps_str =
+  def inspect(%Dimension{components: comps}, _opts) do
+    components_str =
       case comps do
         %Base{name: name} ->
           "#{to_string(name)}^1"
 
         dims when is_list(dims) ->
           dims
-          |> Enum.map_join(" ", fn {%Dimension{comps: %Base{name: name}}, e} ->
+          |> Enum.map_join(" ", fn {%Dimension{components: %Base{name: name}}, e} ->
             "#{to_string(name)}^#{parse_ratio(e)}"
           end)
       end
 
-    "#Dimension<#{comps_str}>"
+    "#Dimension<#{components_str}>"
   end
 
   defp parse_ratio(%Ratio{numerator: n, denominator: 1}), do: "#{n}"

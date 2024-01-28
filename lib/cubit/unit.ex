@@ -16,10 +16,13 @@ defmodule Cubit.Unit do
   alias Cubit.Helpers
   alias Cubit.Unit
 
-  defstruct [:dim, :scale]
+  defstruct [:dim, :scale, :name]
 
-  @type t :: %Unit{dim: Dimension.t(), scale: Decimal.t()}
-
+  @type t :: %Unit{
+          dim: Dimension.t(),
+          scale: Decimal.t(),
+          name: nil | atom
+        }
   @type numeric :: number | Decimal.t()
 
   @doc """
@@ -31,10 +34,11 @@ defmodule Cubit.Unit do
       iex>  new(Dimension.new(:length), 1)
       #Unit<1 #Dimension<length^1>>
   """
-  @spec new(Dimension.t(), numeric) :: t
-  def new(%Dimension{} = dim, scale) when pos_numeric(scale) do
+  @spec new(Dimension.t(), numeric, keyword()) :: t
+  def new(%Dimension{} = dim, scale, opts \\ []) when pos_numeric(scale) do
+    name = Keyword.get(opts, :name)
     {:ok, scale} = Decimal.cast(scale)
-    %Unit{dim: dim, scale: Decimal.normalize(scale)}
+    %Unit{dim: dim, scale: Decimal.normalize(scale), name: name}
   end
 
   @doc """
@@ -60,7 +64,7 @@ defmodule Cubit.Unit do
   @doc """
   Multiply two units or a unit and a number.
 
-  A number is treated as a dimensionless unit.
+  The first argument must be a unit. A number is treated as a dimensionless unit.
 
   ## Examples
 
@@ -75,7 +79,7 @@ defmodule Cubit.Unit do
     new(Dimension.multiply(d1, d2), Decimal.mult(s1, s2))
   end
 
-  def multiply(%Unit{} = unit, num), do: multiply(unit, numeric_to_unit(num))
+  def multiply(%Unit{} = unit, num) when is_numeric(num), do: multiply(unit, numeric_to_unit(num))
 
   @doc """
   Divide two units or a unit and a number.
@@ -187,11 +191,11 @@ end
 defimpl Inspect, for: Cubit.Unit do
   alias Cubit.Unit
 
-  def inspect(%Unit{scale: scale, dim: dim}, opts) do
-    "#Unit<#{parse_scale(scale)} #{Inspect.Cubit.Dimension.inspect(dim, opts)}>"
+  def inspect(%Unit{scale: scale, dim: dim, name: name}, opts) do
+    "#Unit<#{parse_scale(scale)} #{parse_name(name)} #{Inspect.Cubit.Dimension.inspect(dim, opts)}>"
   end
 
-  defp parse_scale(scale) do
-    Decimal.to_string(scale)
-  end
+  defp parse_name(name), do: to_string(name)
+
+  defp parse_scale(scale), do: Decimal.to_string(scale)
 end

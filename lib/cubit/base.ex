@@ -7,11 +7,12 @@ defmodule Cubit.Dimension.Base do
   """
   defstruct [:name]
 
-  @type t :: %__MODULE__{name: any}
+  @type name :: atom | binary
+  @type t :: %__MODULE__{name: name}
 
   @doc """
   Create a new base struct with the given `name`.
   """
-  @spec new(any) :: t
-  def new(name), do: %__MODULE__{name: name}
+  @spec new(name) :: t
+  def new(name) when is_atom(name) or is_binary(name), do: %__MODULE__{name: name}
 end
